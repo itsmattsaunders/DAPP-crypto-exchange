@@ -14,6 +14,13 @@ contract EthSwap {
         uint256 rate
     );
 
+    event tokenSold(
+        address account,
+        address token,
+        uint256 amount,
+        uint256 rate
+    );
+
     constructor(Token _token) public {
         token = _token;
     }
@@ -23,11 +30,31 @@ contract EthSwap {
         //ETH * redeption rate
         uint256 tokenAmount = msg.value * rate;
 
+        // Require that EthSwap has enough tokens
         require(token.balanceOf(address(this)) >= tokenAmount);
 
+        // Transfer tokens to the user
         token.transfer(msg.sender, tokenAmount);
 
         //Emit an event
         emit tokenPurchased(msg.sender, address(token), tokenAmount, rate);
+    }
+
+    function sellTokens(uint256 _amount) public{
+        //User can't sell more tokens then they have
+        require(token.balanceOf(msg.sender) >= _amount);
+
+        //Calculate redemable amount
+        uint256 etherAmount = _amount / rate;
+
+        //require that ethSwap has enough Ether
+        require(address(this).balance >= etherAmount);
+
+        //Perform sale
+        token.transferFrom(msg.sender, address(this), _amount);
+        msg.sender.transfer(etherAmount);
+
+        //Emit an event
+        emit tokenSold(msg.sender, address(token), _amount, rate);
     }
 }
